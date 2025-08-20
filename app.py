@@ -32,6 +32,11 @@ contratos_selecionados = st.sidebar.multiselect("Tipo de Contrato", contratos_di
 tamanhos_disponiveis = sorted(df['tamanho_empresa'].unique())
 tamanhos_selecionados = st.sidebar.multiselect("Tamanho da Empresa", tamanhos_disponiveis, default=tamanhos_disponiveis)
 
+# Filtro por Cargo
+cargos_disponiveis = sorted(df['cargo'].unique())
+cargos_selecionados = st.sidebar.multiselect("Cargo (Somente no Mapa)", cargos_disponiveis, default=["Architect"], max_selections=1)
+
+
 # --- Filtragem do DataFrame ---
 # O dataframe principal é filtrado com base nas seleções feitas na barra lateral.
 df_filtrado = df[
@@ -99,42 +104,46 @@ with col_graf2:
     else:
         st.warning("Nenhum dado para exibir no gráfico de distribuição.")
 
-col_graf3, col_graf4 = st.columns(2)
+st.markdown("---")
 
-with col_graf3:
-    if not df_filtrado.empty:
-        remoto_contagem = df_filtrado['remoto'].value_counts().reset_index()
-        remoto_contagem.columns = ['tipo_trabalho', 'quantidade']
-        grafico_remoto = px.pie(
-            remoto_contagem,
-            names='tipo_trabalho',
-            values='quantidade',
-            title='Proporção dos tipos de trabalho',
-            hole=0.5
-        )
-        grafico_remoto.update_traces(textinfo='percent+label')
-        grafico_remoto.update_layout(title_x=0.1)
-        st.plotly_chart(grafico_remoto, use_container_width=True)
-    else:
-        st.warning("Nenhum dado para exibir no gráfico dos tipos de trabalho.")
 
-with col_graf4:
-    if not df_filtrado.empty:
-        df_ds = df_filtrado[df_filtrado['cargo'] == 'Data Scientist']
-        media_ds_pais = df_ds.groupby('residencia_iso3')['usd'].mean().reset_index()
-        grafico_paises = px.choropleth(media_ds_pais,
-            locations='residencia_iso3',
-            color='usd',
-            color_continuous_scale='rdylgn',
-            title='Salário médio de Cientista de Dados por país',
-            labels={'usd': 'Salário médio (USD)', 'residencia_iso3': 'País'})
-        grafico_paises.update_layout(title_x=0.1)
-        st.plotly_chart(grafico_paises, use_container_width=True)
-    else:
-        st.warning("Nenhum dado para exibir no gráfico de países.")
+if not df_filtrado.empty:
+    remoto_contagem = df_filtrado['remoto'].value_counts().reset_index()
+    remoto_contagem.columns = ['tipo_trabalho', 'quantidade']
+    grafico_remoto = px.pie(
+        remoto_contagem,
+        names='tipo_trabalho',
+        values='quantidade',
+        title='Proporção dos tipos de trabalho',
+        hole=0.5
+    )
+    grafico_remoto.update_traces(textinfo='percent+label')
+    grafico_remoto.update_layout(title_x=0.1)
+    st.plotly_chart(grafico_remoto, use_container_width=True)
+else:
+    st.warning("Nenhum dado para exibir no gráfico dos tipos de trabalho.")
+
+
+st.markdown("---")
+
+df_ds = df[df['cargo'].isin(cargos_selecionados)]
+
+if not df_ds.empty:
+    #df_ds = df_filtrado[df_filtrado['cargo'] == 'Data Scientist']
+    
+    media_ds_pais = df_ds.groupby('residencia_iso3')['usd'].mean().reset_index()
+    grafico_paises = px.choropleth(media_ds_pais,
+        locations='residencia_iso3',
+        color='usd',
+        color_continuous_scale='rdylgn',
+        title=f'Salário médio por país para cargo: {cargos_selecionados[0]}',
+        labels={'usd': 'Salário médio (USD)', 'residencia_iso3': 'País'})
+    grafico_paises.update_layout(title_x=0.1)
+    st.plotly_chart(grafico_paises, use_container_width=True)
+else:
+    st.warning("Nenhum dado para exibir no gráfico de países.")
 
 # --- Tabela de Dados Detalhados ---
 st.subheader("Dados Detalhados")
 st.dataframe(df_filtrado)
-
      
